@@ -19,8 +19,31 @@
 */
 
 int main(int argc, char **argv) {
+
   (void) argc;
   (void) argv;
-  HERE;
+  if (argc < 2) {
+    return 0;
+  } //if no files, exit
+
+  for (int i = 1; i < argc; i++) {
+    FILE *file = fopen(argv[i], "rb"); //open file
+    if (!file) {
+      fprintf(stderr, "loading fails %s\n", argv[i]);
+      exit(42); //exit if loading fails
+    }
+
+    loaded_file *LdFile = load_file(file);
+    if (!LdFile) {
+      fprintf(stderr, "loading fails %s\n", argv[i]);
+      fclose(file);
+      exit(42); //exit if loading fails
+    }
+    sort_file(LdFile);
+    print_file(LdFile);
+    free_file(LdFile);
+    fclose(file);
+  }
+
   return 0;
 }
