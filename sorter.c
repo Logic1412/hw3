@@ -19,8 +19,43 @@
 loaded_file *load_file(FILE *f)
 {
   (void) f;
-  HERE;
-  return NULL;
+
+  if (!f) return NULL;
+  loaded_file *file = malloc(sizeof(loaded_file));
+  if (!file) return NULL;
+  file->lines = NULL;
+  file->num_lines = 0;
+  line *cur_line = NULL;
+  size_t line_len = 0;
+  int c;
+
+  while ((c = fgetc(f)) != EOF) {
+    if (!cur_line) {
+      cur_line = malloc(sizeof(line));
+      cur_line->data = NULL;
+      cur_line->length = 0;
+    }
+
+    cur_line->data = realloc(cur_line->data, line_len + 1);
+    cur_line->data[line_len++] = (unsigned char)c;
+
+    if (c == '\n') {
+      cur_line->length = line_len;
+      file->lines = realloc(file->lines, (file->num_lines + 1) * sizeof(line *));
+      file->lines[file->num_lines++] = cur_line;
+      
+      cur_line = NULL;
+      line_len = 0;
+    }
+  }
+
+  if (cur_line && line_len > 0) {
+    cur_line->length = line_len;
+    file->lines = realloc(file->lines, (file->num_lines + 1) * sizeof(line *));
+    file->lines[file->num_lines++] = cur_line;
+  }
+
+  return file;
 }
 
 /*
@@ -28,7 +63,13 @@ loaded_file *load_file(FILE *f)
 void free_file(loaded_file *f)
 {
   (void) f;
-  HERE;
+  if (!f) return;
+  for (size_t i = 0; i < f->num_lines; i++) {
+    free(f->lines[i]->data);
+    free(f->lines[i]);
+  }
+  free(f->lines);
+  free(f);
 }
 
 /*
@@ -49,7 +90,17 @@ void free_file(loaded_file *f)
 int sorter_comp(const void *a, const void *b){
   (void) a;
   (void) b;
-  HERE;
+  const line *line_a = *(const line **)a;
+  const line *line_b = *(const line **)b;
+
+  size_t min_length = line_a->length < line_b->length ? line_a->length : line_b->length;
+  for (size_t i = 0; i < min_length; i++) {
+    if (line_a->data[i] < line_b->data[i]) return -1;
+    if (line_a->data[i] > line_b->data[i]) return 1;
+  }
+  if (line_a->length < line_b->length) return -1;
+  if (line_a->length > line_b->length) return 1;
+  
   return 0;
 }
 
@@ -57,7 +108,9 @@ int sorter_comp(const void *a, const void *b){
 void sort_file(loaded_file *f)
 {
   (void) f;
-  HERE;
+  if (f && f->lines && f->num_lines > 0) {
+    qsort(f->lines, f->num_lines, sizeof(line *), sorter_comp);
+  }
 }
 
 /*
@@ -67,6 +120,10 @@ void sort_file(loaded_file *f)
 */
 void print_file(loaded_file *f)
 {
-  (void) f;
-  HERE;
+  if (!f) return;
+  for (size_t i = 0; i < f->num_lines; i++) {
+    for (size_t j = 0; j < f->lines[i]->length; j++) {
+      putchar(f->lines[i]->data[j]);
+    }
+  }
 }
